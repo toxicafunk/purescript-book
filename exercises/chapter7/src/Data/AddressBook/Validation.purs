@@ -1,10 +1,11 @@
 module Data.AddressBook.Validation where
 
 import Prelude
+
 import Data.AddressBook (Address(..), Person(..), PhoneNumber(..), address, person, phoneNumber)
 import Data.Either (Either(..))
 import Data.String (length)
-import Data.String.Regex (Regex, test, regex)
+import Data.String.Regex (Regex, regex, test)
 import Data.String.Regex.Flags (noFlags)
 import Data.Traversable (traverse)
 import Data.Validation.Semigroup (V, unV, invalid)
@@ -30,20 +31,35 @@ phoneNumberRegex =
     case regex "^\\d{3}-\\d{3}-\\d{4}$" noFlags of
       Right r -> r
 
+stateRegex :: Regex
+stateRegex =
+  unsafePartial
+    case regex "^\\D{2}$" noFlags of
+      Right r -> r
+
+nonEmptyRegex :: Regex
+nonEmptyRegex =
+  unsafePartial
+    case regex "^\\S+$" noFlags of
+      Right r -> r
+
 matches :: String -> Regex -> String -> V Errors Unit
 matches _     regex value | test regex value = pure unit
 matches field _     _     = invalid ["Field '" <> field <> "' did not match the required format"]
 
 validateAddress :: Address -> V Errors Address
 validateAddress (Address o) =
-  address <$> (nonEmpty "Street" o.street *> pure o.street)
-          <*> (nonEmpty "City"   o.city   *> pure o.city)
-          <*> (lengthIs "State" 2 o.state *> pure o.state)
+  address <$> (matches "Street" nonEmptyRegex o.street *> pure o.street)
+          -- <*> (nonEmpty "City"   o.city   *> pure o.city)
+          <*> (matches "City" nonEmptyRegex o.city *> pure o.city)
+          <*> (matches "State" stateRegex o.state *> pure o.state)
+          -- <*> (lengthIs "State" 2 o.state *> pure o.state)
 
 validatePhoneNumber :: PhoneNumber -> V Errors PhoneNumber
 validatePhoneNumber (PhoneNumber o) =
   phoneNumber <$> pure o."type"
               <*> (matches "Number" phoneNumberRegex o.number *> pure o.number)
+
 
 validatePerson :: Person -> V Errors Person
 validatePerson (Person o) =

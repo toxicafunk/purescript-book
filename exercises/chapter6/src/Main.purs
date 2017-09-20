@@ -1,12 +1,14 @@
 module Main where
 
+import Data.Maybe
 import Data.Monoid
 import Prelude
 
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE, log, logShow)
 import Data.Array ((:))
-import Data.Foldable (class Foldable, foldMap, foldl, foldr)
+import Data.Foldable (class Foldable, foldMap, foldl, foldr, maximum)
+import Partial.Unsafe (unsafePartial)
 
 newtype Complex = Complex
    { real :: Number
@@ -66,12 +68,47 @@ instance foldableNonEmpty :: Foldable NonEmpty where
 data OneMore f a = OneMore a (f a)
 
 instance showOneMore :: (Show (f a), Show a) => Show (OneMore f a) where
+  show :: (OneMore a f) -> String
   show (OneMore x f) = show x <> " + " <> show f
 
 instance foldableOneMore :: Foldable f => Foldable (OneMore f) where
   foldl g y (OneMore x f) = foldl g (g y x) f
   foldr g y (OneMore x f) = foldr g (g x y) f
   foldMap g (OneMore x f) = g x <> foldMap g f
+
+maxInt :: Partial => Array Int -> Int
+maxInt arr = case maximum arr of
+  Just x -> x
+
+newtype Multiply = Multiply Int
+
+instance semigroupMultiply :: Semigroup Multiply where
+  append (Multiply n) (Multiply m) = Multiply (n * m)
+
+instance monoidMultiply :: Monoid Multiply where
+  mempty = Multiply 1
+
+class Monoid m <= Action m a where
+   act :: m -> a -> a
+
+instance repeatAction :: Action Multiply String where
+  act (Multiply n) s = repeat n s where
+    repeat 0 _ = mempty
+    repeat n s = s <> repeat (n-1) s
+
+instance arrayAction :: Action m a => Action m (Array a) where
+  act m arr = map (act m) arr
+
+-- newtype Self m = Self m
+
+-- instance semigroupSelf :: Semigroup m => Semigroup (Self m) where
+--  append (Self s1) (Self s2) = Self(s1 <> s2)
+
+-- instance monoidSelf :: Monoid (Self m) where
+--  mempty = Self
+
+-- instance selfAction :: Action m (Self m) where
+--  act m s = foldl (<>) (mempty s) s
 
 ext1 :: Extended Int
 ext1 = Finite 2
@@ -82,6 +119,7 @@ ext4 = Infinite
 ne1 :: NonEmpty Int
 ne1 = NonEmpty 2 [3,4,5]
 
+om1 :: OneMore Array Int
 om1 = OneMore 1 [2,3]
 
 main :: forall e. Eff (console :: CONSOLE | e) Unit
@@ -91,3 +129,5 @@ main = do
   logShow (foldl (\acc x -> acc + x) 0 om1)
   logShow (foldr (\x acc -> acc + x) 0 om1)
   log (foldMap show om1)
+  logShow (unsafePartial maxInt [3,7,8,2,3])
+  log (act (Multiply 3) "Eo")
