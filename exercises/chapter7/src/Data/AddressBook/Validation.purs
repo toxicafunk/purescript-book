@@ -4,12 +4,15 @@ import Prelude
 
 import Data.AddressBook (Address(..), Person(..), PhoneNumber(..), address, person, phoneNumber)
 import Data.Either (Either(..))
+import Data.Maybe
 import Data.String (length)
 import Data.String.Regex (Regex, regex, test)
 import Data.String.Regex.Flags (noFlags)
 import Data.Traversable (traverse)
 import Data.Validation.Semigroup (V, unV, invalid)
 import Partial.Unsafe (unsafePartial)
+
+import Debug.Trace (trace, traceShow, traceAny, spy, traceA, traceShowA, traceAnyA, traceShowM, traceAnyM)
 
 type Errors = Array String
 
@@ -40,11 +43,14 @@ stateRegex =
 nonEmptyRegex :: Regex
 nonEmptyRegex =
   unsafePartial
-    case regex "^\\S+$" noFlags of
+    case regex "^(?=\\s*\\S).*$" noFlags of
       Right r -> r
 
 matches :: String -> Regex -> String -> V Errors Unit
-matches _     regex value | test regex value = pure unit
+matches _     regex value | test regex value =
+  do
+    trace ("Called matches with " <> show value) \_ ->
+    pure unit
 matches field _     _     = invalid ["Field '" <> field <> "' did not match the required format"]
 
 validateAddress :: Address -> V Errors Address
@@ -65,7 +71,7 @@ validatePerson :: Person -> V Errors Person
 validatePerson (Person o) =
   person <$> (nonEmpty "First Name" o.firstName *> pure o.firstName)
          <*> (nonEmpty "Last Name"  o.lastName  *> pure o.lastName)
-         <*> validateAddress o.homeAddress
+         <*> traverse validateAddress o.homeAddress
          <*> (arrayNonEmpty "Phone Numbers" o.phones *> traverse validatePhoneNumber o.phones)
 
 validatePerson' :: Person -> Either Errors Person
