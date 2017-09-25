@@ -5,6 +5,7 @@ import Data.List
 import Data.Maybe (Maybe)
 import Prelude
 
+import Control.Monad.Eff.Exception
 import Control.Monad.Eff (Eff, forE, runPure)
 import Control.Monad.ST (ST, newSTRef, readSTRef, modifySTRef, runST)
 import Control.MonadZero
@@ -42,3 +43,8 @@ simulate x0 v0 time = do
 
 simulate' :: Number -> Number -> Int -> Number
 simulate' x0 v0 time = runPure $ runST (simulate x0 v0 time)
+
+safeDivide :: forall eff. Number -> Number -> Eff (exception :: EXCEPTION | eff) Number
+safeDivide a b = if (b /= 0.0)
+                   then pure(a / b)
+                   else throwException $ error "Expected NON-ZERO denominator"
