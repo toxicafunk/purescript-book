@@ -5,14 +5,14 @@ import Prelude
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE, log)
 import Control.Monad.Except (runExcept)
-import Data.AddressBook (Address(..), Person(..), PhoneNumber(..), examplePerson)
+import Data.AddressBook (Address(..), Person(..), PhoneNumber(..), examplePerson, PhoneType(..), phoneNumber)
 import Data.AddressBook.Validation (Errors, validatePerson')
-import Data.Array ((..), length, modifyAt, zipWith)
+import Data.Array ((..), length, modifyAt, zipWith, snoc)
 import Data.Either (Either(..))
 import Data.Foldable (for_)
 import Data.Foreign (ForeignError, readString, toForeign)
 import Data.Foreign.Index (index)
-import Data.Maybe (fromJust, fromMaybe)
+import Data.Maybe (Maybe(..), fromJust, fromMaybe)
 import Data.List.NonEmpty (NonEmptyList)
 import DOM (DOM())
 import DOM.HTML (window)
@@ -66,7 +66,8 @@ addressBook :: forall props. ReactClass props
 addressBook = createClass $ spec initialState \ctx -> do
   AppState { person: Person person@{ homeAddress: Address address }, errors } <- readState ctx
 
-  let renderValidationError err = D.li' [ D.text err ]
+  -- let renderValidationError err = D.li' [ D.text err ]
+  let renderValidationError err = D.div [P.className "alert"] [  D.text err ]
 
       renderValidationErrors [] = []
       renderValidationErrors xs =
@@ -121,6 +122,8 @@ addressBook = createClass $ spec initialState \ctx -> do
                            , D.h3' [ D.text "Contact Information" ]
                            ]
                            <> zipWith renderPhoneNumber person.phones (0 .. length person.phones)
+                           <> [ formField "OtherPhone" "OtherPhone" "XXX-XXX-XXXX" \s ->
+                              Person $ person { phones = fromMaybe person.phones (Just $ snoc person.phones (phoneNumber OtherPhone s)) } ]
                   ]
           ]
 
