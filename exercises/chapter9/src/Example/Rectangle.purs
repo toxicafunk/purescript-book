@@ -12,8 +12,7 @@ main :: Eff (canvas :: CANVAS) Unit
 main = void $ unsafePartial do
   Just canvas <- getCanvasElementById "canvas"
   ctx <- getContext2D canvas
-
-  setFillStyle "#0000FF" ctx
+  _ <- setFillStyle "#0000FF" ctx
 
   fillPath ctx $ rect ctx
     { x: 250.0
