@@ -3,7 +3,7 @@ module Main where
 import Prelude
 
 import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Alert (ALERT, alert)
+import Control.Monad.Eff.Alert (ALERT, alert, confirm)
 import Control.Monad.Eff.Console (CONSOLE, log)
 import Control.Monad.Eff.Storage (STORAGE, setItem, getItem)
 import Control.Monad.Except (runExcept)
@@ -18,7 +18,7 @@ import Data.AddressBook.Validation (Errors, validatePerson')
 import Data.Array ((..), length, modifyAt, zipWith)
 import Data.Either (Either(..))
 import Data.Foldable (foldMap, for_)
-import Data.Foreign (ForeignError, readNullOrUndefined, readString, renderForeignError, toForeign)
+import Data.Foreign (ForeignError, readNullOrUndefined, readString, renderForeignError, toForeign, F)
 import Data.Foreign.Class (class Decode, class Encode)
 import Data.Foreign.Generic (decodeJSON, defaultOptions, encodeJSON, genericDecode, genericEncode)
 import Data.Foreign.Index (index)
@@ -31,6 +31,27 @@ import React (ReactClass, ReadWrite, ReactState, Event, ReactThis, createFactory
 import React.DOM as D
 import React.DOM.Props as P
 import ReactDOM (render)
+
+newtype Status = Status { status :: String }
+
+derive instance genericStatus :: Generic Status _
+
+instance decodeStatus :: Decode Status where
+   decode = genericDecode (defaultOptions { unwrapSingleConstructors = true })
+
+instance encodeStatus :: Encode Status where
+   encode = genericEncode (defaultOptions { unwrapSingleConstructors = true })
+
+status1 :: String
+status1 = "{\"status\": \"OK\"}"
+
+status :: Either (NonEmptyList ForeignError) Status
+status = runExcept (decodeJSON status1 :: F Status)
+
+parsedStatus :: String
+parsedStatus = case status of
+   Right (Status { status: a }) -> a
+   _ -> "Nothing"
 
 newtype AppState = AppState
   { person :: Person
@@ -126,7 +147,8 @@ validateAndSaveEntry person = do
     Left errs -> alert $ "There are " <> show (length errs) <> " validation errors."
     Right result -> do
       setItem "person" $ encodeJSON $ unsafePartial toFormData result
-      alert "Saved"
+      conf <- confirm "Saved"
+      alert $ show conf
 
 valueOf :: Event -> Either (NonEmptyList ForeignError) String
 valueOf e = runExcept do

@@ -11,5 +11,11 @@ exports.setItem = function(key) {
 exports.getItem = function(key) {
     return function() {
         return window.localStorage.getItem(key);
-    }
+    };
+};
+
+exports.removeItem = function(key) {
+    return function() {
+        window.localStorage.removeItem(key);
+    };
 };
