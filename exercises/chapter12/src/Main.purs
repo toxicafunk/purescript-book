@@ -1,21 +1,12 @@
-module Main where
-
-import Prelude
+module Main' where
 
 import Control.Monad.Cont.Trans (runContT)
 import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Console (CONSOLE, log, error)
-import Control.Monad.Trans.Class (lift)
-import Data.Either (either)
-import Network.HTTP.Client (HTTP, get)
-import Types (Async)
+import Control.Monad.Eff.Console (CONSOLE, log)
+import Prelude (Unit)
+import Timeout (TIMEOUT, setTimeoutCont)
 
-main :: Eff ( http :: HTTP
+main :: Eff ( timeout :: TIMEOUT
             , console :: CONSOLE
             ) Unit
-main = async do
-    response <- get "http://purescript.org"
-    lift (either error log response)
-  where
-    async :: forall eff. Async eff Unit -> Eff eff Unit
-    async = flip runContT pure
+main = runContT (setTimeoutCont 2000) \_ -> log "Done!"
