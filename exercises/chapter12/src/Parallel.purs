@@ -27,6 +27,9 @@ concatFile :: forall eff. Eff (console :: CONSOLE
                         | eff) Unit
 concatFile = flip runContT logShow (runExceptT  do
   sequential $
+    append
+      <$> parallel (readFileContEx "/tmp/1.txt")
+      <*> parallel (readFileContEx "/tmp/2.txt")
       )
 
 concatRequests :: forall eff. URI -> URI -> Eff (console :: CONSOLE
