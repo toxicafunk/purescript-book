@@ -15,10 +15,13 @@ module Data.DOM.Phantom
   , src
   , width
   , height
+  , Dimension
 
   , attribute, (:=)
   , text
   , elem
+  , perc
+  , px
 
   , render
   ) where
@@ -37,6 +40,10 @@ newtype Element = Element
 data Content
   = TextContent String
   | ElementContent Element
+
+data True
+data False
+data Bool = True | False
 
 newtype Attribute = Attribute
   { key          :: String
@@ -58,6 +65,16 @@ text = TextContent
 elem :: Element -> Content
 elem = ElementContent
 
+data Dimension
+  = Pixel Int
+  | Percentage Int
+
+perc :: Int -> Dimension
+perc p = if p >= 0 then Percentage p else perc (-p)
+
+px :: Int -> Dimension
+px i = Pixel i
+
 class IsValue a where
   toValue :: a -> String
 
@@ -66,6 +83,10 @@ instance stringIsValue :: IsValue String where
 
 instance intIsValue :: IsValue Int where
   toValue = show
+
+instance dimensionIsValue :: IsValue Dimension where
+  toValue (Pixel i) = show i <> "px"
+  toValue (Percentage i) = show i <> "%"
 
 attribute :: forall a. IsValue a => AttributeKey a -> a -> Attribute
 attribute (AttributeKey key) value = Attribute
@@ -93,10 +114,10 @@ _class = AttributeKey "class"
 src :: AttributeKey String
 src = AttributeKey "src"
 
-width :: AttributeKey Int
+width :: AttributeKey Dimension
 width = AttributeKey "width"
 
-height :: AttributeKey Int
+height :: AttributeKey Dimension
 height = AttributeKey "height"
 
 render :: Element -> String
